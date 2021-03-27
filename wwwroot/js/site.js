@@ -5,7 +5,7 @@
 
 var ctx = document.getElementById('myChart').getContext('2d');
 var ordersCtx = document.getElementById('ordersChart').getContext('2d');
-var chartSymbol = "F"
+var chartSymbol = "AVGO"
 var symbols = ["AMZN", "AIV", "ABNB", "CVX", "NRG", "VZ", "AVGO", "UWMC", "F", "C"];
 var totaltotal = 0;
 var totalbuysoutstanding = 0;
@@ -16,7 +16,7 @@ var count = 0;
 for (var i = 0; i < symbols.length; i++) {
     $.ajax({
         dataType: "json",
-        url: "/Trades/" + symbols[i] + "/9/0/0",
+        url: "/Trades/" + symbols[i] + "/0/0/0",
         success: (function (index) {
             return function (trades) {
                 count++;
