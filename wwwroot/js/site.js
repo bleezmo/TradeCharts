@@ -5,24 +5,33 @@
 
 var ctx = document.getElementById('myChart').getContext('2d');
 var ordersCtx = document.getElementById('ordersChart').getContext('2d');
-var chartSymbol = "NRG"
+var chartSymbol = "F"
 var symbols = ["AMZN", "AIV", "ABNB", "CVX", "NRG", "VZ", "AVGO", "UWMC", "F", "C"];
 var totaltotal = 0;
 var totalbuysoutstanding = 0;
 var totalspent = 0;
+var hits = 0;
+var misses = 0;
+var count = 0;
 for (var i = 0; i < symbols.length; i++) {
     $.ajax({
         dataType: "json",
-        url: "/Trades/" + symbols[i] + "/6",
+        url: "/Trades/" + symbols[i] + "/9/0/0",
         success: (function (index) {
             return function (trades) {
+                count++;
                 totaltotal = totaltotal + trades.total;
                 totalbuysoutstanding = totalbuysoutstanding + trades.buysOutstanding
                 totalspent = totalspent + trades.totalSpent;
+                hits = hits + trades.hits;
+                misses = misses + trades.misses;
                 if (symbols[index] === chartSymbol) {
                     chartTrades(trades);
                 }
-                if (index == symbols.length - 1) {
+                if (count == symbols.length) {
+                    document.getElementById('totalhits').innerHTML = "Hits: " + hits;
+                    document.getElementById('totalmisses').innerHTML = "Misses: " + misses;
+                    document.getElementById('hitmiss').innerHTML = "Hit/Miss ratio: " + (hits/misses);
                     document.getElementById('totaltotal').innerHTML = "Total: " + totaltotal;
                     document.getElementById('totalspent').innerHTML = "Total Spent: " + totalspent;
                     document.getElementById('totalgain').innerHTML = "Gain: " + (totaltotal / totalspent);
@@ -33,8 +42,8 @@ for (var i = 0; i < symbols.length; i++) {
 }
 function chartTrades(trades) {
     document.getElementById('total').innerHTML = "Total: " + trades.total;
-    document.getElementById('outstanding').innerHTML = "Outstanding: " + trades.outstanding;
-    document.getElementById('buysoutstanding').innerHTML = "Buys Outstanding: " + trades.buysOutstanding;
+    document.getElementById('hits').innerHTML = "Hits: " + trades.hits;
+    document.getElementById('misses').innerHTML = "Misses: " + trades.misses;
     var myChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -76,6 +85,22 @@ function chartTrades(trades) {
                     data: trades.smaLower,
                     fill: false,
                     borderColor: "rgb(0, 0, 0)",
+                    borderWidth: 2,
+                    pointRadius: 0
+                },
+                {
+                    label: "SMATwoUpper",
+                    data: trades.smaTwoUpper,
+                    fill: false,
+                    borderColor: "rgb(3, 8, 105)",
+                    borderWidth: 2,
+                    pointRadius: 0
+                },
+                {
+                    label: "SMATwoLower",
+                    data: trades.smaTwoLower,
+                    fill: false,
+                    borderColor: "rgb(3, 8, 105)",
                     borderWidth: 2,
                     pointRadius: 0
                 },

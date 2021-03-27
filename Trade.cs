@@ -11,7 +11,7 @@ namespace TradeCharts
     {
         public long Id { get; set; }
         public string Symbol { get; set; }
-        public decimal Price { get; set; }
+        public double Price { get; set; }
         public long Size { get; set; }
         public DateTime TimeUtc { get; set; }
         public long TimeUtcMilliseconds { get; set; }
@@ -19,12 +19,14 @@ namespace TradeCharts
         public double SMASlope { get; set; }
         //window is twice SMA window
         public double SMATwo { get; set; }
+        public double SMATwoUpper { get; set; }
+        public double SMATwoLower { get; set; }
         public double SMATwoSlope { get; set; }
         public double SMAUpper { get; set; }
-        public double SMAUpperSlope { get; set; }
         public double SMALower { get; set; }
         public double Alma { get; set; }
         public double AlmaSlope { get; set; }
+        public double AlmaAccel { get; set; }
         public double VolumeSMA { get; set; }
     }
 }
