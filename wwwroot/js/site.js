@@ -5,7 +5,7 @@
 
 var ctx = document.getElementById('myChart').getContext('2d');
 var ordersCtx = document.getElementById('ordersChart').getContext('2d');
-var chartSymbol = "AVGO"
+var chartSymbol = "NRG"
 var symbols = ["AMZN", "AIV", "ABNB", "CVX", "NRG", "VZ", "AVGO", "UWMC", "F", "C"];
 var totaltotal = 0;
 var totalbuysoutstanding = 0;
