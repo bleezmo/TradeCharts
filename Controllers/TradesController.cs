@@ -44,17 +44,10 @@ namespace TradeCharts.Controllers
                 var startcut = tradesDescending.Last().TimeUtcMilliseconds + TimeSpan.FromMinutes(40).TotalMilliseconds;
                 var tradesSoFar = tradesDescending.Where(t => t.TimeUtcMilliseconds < trade.TimeUtcMilliseconds && t.TimeUtcMilliseconds > startcut);
                 var stdev = (trade.SMA - trade.SMALower) / 2;
-                if(tradesSoFar.Count() > 2)
+                if(tradesSoFar.Any())
                 {
                     var posPerc = (double)tradesSoFar.Where(t=> t.Alma > t.SMA).Count() / tradesSoFar.Count();
-                    //var trade1 = trade;
-                    //var trade2 = tradesSoFar.First();
-                    //var trade3 = tradesSoFar.Skip(1).First();
-                    //var accel1 = (trade1.AlmaSlope - trade2.AlmaSlope) / trade1.TimeUtc.Subtract(trade2.TimeUtc).TotalMinutes;
-                    //var accel2 = (trade2.AlmaSlope - trade3.AlmaSlope) / trade2.TimeUtc.Subtract(trade3.TimeUtc).TotalMinutes;
-                    //var slopeChange = (trade1.TimeUtc.Subtract(trade3.TimeUtc).TotalMinutes) * ((accel1 / 4) + (accel2 / 4));
-                    var nextSlope = (trade.AlmaSlope*2) - tradesSoFar.First().AlmaSlope;
-                    if (trade.Alma < (trade.SMA-stdev) && trade.SMASlope < 0 && trade.AlmaSlope < 0 && nextSlope >= 0 && stdev >= (trade.SMA * .002) && posPerc >= .45 && posPerc <= .75
+                    if (trade.Alma < (trade.SMA-stdev) && trade.SMASlope < 0 && trade.NextSlope >= 0 && stdev >= (trade.SMA * .0015) && posPerc >= .45 && posPerc <= .75
                         && (!orders.Any() || (orders.Last().Sell.HasValue && orders.Last().Sell > orders.Last().Buy))
                         && trade.TimeUtcMilliseconds < (recent.TimeUtcMilliseconds-TimeSpan.FromMinutes(30).TotalMilliseconds)
                         )
@@ -66,14 +59,16 @@ namespace TradeCharts.Controllers
                             var buy = rounded;
                             if(buy > lastPositive.SMATwoLower)
                             {
-                                orders.Add(new Order
-                                {
-                                    Buy = buy,
-                                    Goal = buy + (trade.SMA - buy) + stdev,
-                                    //Stop = Math.Min(buy - (stdev * 3), buy * .997),
-                                    //InitStop = Math.Min(buy - (stdev * 3), buy * .997),
-                                    OrderTime = trade.TimeUtcMilliseconds
-                                });
+                                //var qty = 3200 / buy;
+                                //for (var i = 0; i < qty; i++)
+                                    orders.Add(new Order
+                                    {
+                                        Buy = buy,
+                                        Goal = buy + (trade.SMA - buy) + stdev,
+                                        Stop = buy * .992,
+                                        //InitStop = Math.Min(buy - (stdev * 3), buy * .997),
+                                        OrderTime = trade.TimeUtcMilliseconds
+                                    });
                             }
                         }
                     }
@@ -83,7 +78,7 @@ namespace TradeCharts.Controllers
                         {
                             if (((order.OrderTime < (trade.TimeUtcMilliseconds + TimeSpan.FromMinutes(10).TotalMilliseconds) && trade.Alma > order.Goal) || trade.Alma > trade.SMA) && trade.SMASlope > 0 && order.Buy < trade.SMA)
                             {
-                                if (trade.AlmaSlope > 0 && nextSlope <= 0)
+                                if (trade.NextSlope <= 0)
                                 {
                                     var rounded = Math.Round(trade.Alma, 2);
                                     var sell = rounded;
@@ -92,7 +87,14 @@ namespace TradeCharts.Controllers
                             }
                             else if (order.BuyTime.HasValue && trade.TimeUtcMilliseconds > (order.BuyTime + TimeSpan.FromMinutes(60).TotalMilliseconds))
                             {
-                                order.Sell = order.Buy;
+                                if(order.Stop.HasValue && order.Stop >= trade.Price)
+                                {
+                                    order.Sell = order.Stop;
+                                }
+                                else
+                                {
+                                    order.Sell = order.Buy;
+                                }
                             }
                         }
                     }
@@ -104,11 +106,6 @@ namespace TradeCharts.Controllers
                     if (order.BuyTime.HasValue && !order.SellTime.HasValue && order.Sell.HasValue && order.Sell <= trade.Price)
                     {
                         order.SellTime = trade.TimeUtcMilliseconds;
-                    }
-                    else if (order.Stop.HasValue && order.BuyTime.HasValue && !order.SellTime.HasValue && order.Stop >= trade.Price)
-                    {
-                        order.SellTime = trade.TimeUtcMilliseconds;
-                        order.Sell = order.Stop;
                     }
                     //else if (order.Stop.HasValue && order.BuyTime.HasValue && !order.SellTime.HasValue && decimal.ToDouble(trade.Price) > order.Buy)
                     //{

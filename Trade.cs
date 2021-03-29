@@ -26,6 +26,7 @@ namespace TradeCharts
         public double SMALower { get; set; }
         public double Alma { get; set; }
         public double AlmaSlope { get; set; }
+        public double NextSlope { get; set; }
         public double VolumeSMA { get; set; }
     }
 }
