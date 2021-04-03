@@ -5,8 +5,33 @@
 
 var ctx = document.getElementById('myChart').getContext('2d');
 var ordersCtx = document.getElementById('ordersChart').getContext('2d');
-var chartSymbol = "NRG"
-var symbols = ["AMZN", "AIV", "ABNB", "CVX", "NRG", "VZ", "AVGO", "UWMC", "F", "C"];
+var symbols = [
+    "NRG",
+    "ENVA",
+    "VZ",
+    "ANF",
+    "FLO",
+    "CARA",
+    "SLB",
+    "F",
+    "C",
+    "SXC",
+    "AMKR",
+    "ARRY",
+    "KOP",
+    "KMI",
+    "DNOW",
+    "PFE",
+    "VTRS",
+    "WFC",
+    "CMCO",
+    "COP",
+    "CXW",
+    "APOG",
+    "EAF",
+    "CMC"];
+
+var chartSymbol = "PFE";
 var totaltotal = 0;
 var totalbuysoutstanding = 0;
 var totalspent = 0;
@@ -26,7 +51,7 @@ for (var i = 0; i < symbols.length; i++) {
                 hits = hits + trades.hits;
                 misses = misses + trades.misses;
                 if (symbols[index] === chartSymbol) {
-                    chartTrades(trades);
+                    chartTrades(trades, symbols[index]);
                 }
                 if (count == symbols.length) {
                     document.getElementById('totalhits').innerHTML = "Hits: " + hits;
@@ -40,7 +65,7 @@ for (var i = 0; i < symbols.length; i++) {
         })(i)
     });
 }
-function chartTrades(trades) {
+function chartTrades(trades, symbol) {
     document.getElementById('total').innerHTML = "Total: " + trades.total;
     document.getElementById('hits').innerHTML = "Hits: " + trades.hits;
     document.getElementById('misses').innerHTML = "Misses: " + trades.misses;

@@ -13,6 +13,8 @@ namespace TradeCharts.Controllers
     public class TradesController : ControllerBase
     {
         private readonly ILogger<TradesController> _logger;
+        private const double _balance = 4000;
+        private readonly double _maxOrderAmount = _balance*.015;
 
         public TradesController(ILogger<TradesController> logger)
         {
@@ -34,22 +36,26 @@ namespace TradeCharts.Controllers
             var tradesDescending = await trades.OrderByDescending(t => t.TimeUtcMilliseconds).ToListAsync();
             var orders = new List<Order>();
             var tradesObj = new Trades();
-
+            //var curMin = double.MaxValue;
             foreach(var trade in tradesAscending)
             {
                 if(trade.Alma == 0 || trade.SMA == 0 || trade.SMATwo == 0)
                 {
                     continue;
                 }
+                //curMin = trade.Alma < curMin ? trade.Alma : curMin;
                 var startcut = tradesDescending.Last().TimeUtcMilliseconds + TimeSpan.FromMinutes(40).TotalMilliseconds;
                 var tradesSoFar = tradesDescending.Where(t => t.TimeUtcMilliseconds < trade.TimeUtcMilliseconds && t.TimeUtcMilliseconds > startcut);
                 var stdev = (trade.SMA - trade.SMALower) / 2;
-                if(tradesSoFar.Any())
+                if(tradesSoFar.Any() && tradesSoFar.Count() > 6)
                 {
+                    var previousAlmaMA = tradesSoFar.Skip(6).First();
                     var posPerc = (double)tradesSoFar.Where(t=> t.Alma > t.SMA).Count() / tradesSoFar.Count();
-                    if (trade.Alma < (trade.SMA-stdev) && trade.SMASlope < 0 && trade.NextSlope >= 0 && stdev >= (trade.SMA * .0015) && posPerc >= .45 && posPerc <= .75
+                    if (trade.Alma < trade.SMA && trade.SMASlope < 0 && previousAlmaMA.AlmaSlopeMA < 0 && trade.AlmaSlopeMA > (previousAlmaMA.AlmaSlopeMA * .4) && stdev >= (trade.SMA * .0018) && posPerc >= .42 && posPerc <= .72
                         && (!orders.Any() || (orders.Last().Sell.HasValue && orders.Last().Sell > orders.Last().Buy))
-                        && trade.TimeUtcMilliseconds < (recent.TimeUtcMilliseconds-TimeSpan.FromMinutes(30).TotalMilliseconds)
+                        //&& (orders.Any() || trade.Alma < curMin * 1.0016)
+                        && trade.TimeUtcMilliseconds < (tradesDescending.First().TimeUtcMilliseconds - TimeSpan.FromMinutes(75).TotalMilliseconds)
+                        //&& trade.TimeUtcMilliseconds < (recent.TimeUtcMilliseconds-TimeSpan.FromMinutes(30).TotalMilliseconds)
                         )
                     {
                         var lastPositive = tradesSoFar.FirstOrDefault(t => t.Alma >= t.SMA);
@@ -59,13 +65,13 @@ namespace TradeCharts.Controllers
                             var buy = rounded;
                             if(buy > lastPositive.SMATwoLower)
                             {
-                                //var qty = 3200 / buy;
-                                //for (var i = 0; i < qty; i++)
-                                    orders.Add(new Order
+                                var qty = (int)Math.Floor(_maxOrderAmount / buy);
+                                for (var i = 0; i < qty; i++)
+                                orders.Add(new Order
                                     {
                                         Buy = buy,
                                         Goal = buy + (trade.SMA - buy) + stdev,
-                                        Stop = buy * .992,
+                                        Stop = buy * .993,
                                         //InitStop = Math.Min(buy - (stdev * 3), buy * .997),
                                         OrderTime = trade.TimeUtcMilliseconds
                                     });
@@ -76,16 +82,21 @@ namespace TradeCharts.Controllers
                     {
                         if (order.BuyTime.HasValue && !order.Sell.HasValue)
                         {
-                            if (((order.OrderTime < (trade.TimeUtcMilliseconds + TimeSpan.FromMinutes(10).TotalMilliseconds) && trade.Alma > order.Goal) || trade.Alma > trade.SMA) && trade.SMASlope > 0 && order.Buy < trade.SMA)
+                            if((trade.TimeUtcMilliseconds - order.BuyTime) < TimeSpan.FromMinutes(60).TotalMilliseconds)
                             {
-                                if (trade.NextSlope <= 0)
+                                var minSell = order.Buy;
+                                if((trade.TimeUtcMilliseconds - order.BuyTime) < TimeSpan.FromMinutes(40).TotalMilliseconds)
                                 {
-                                    var rounded = Math.Round(trade.Alma, 2);
-                                    var sell = rounded;
+                                    var minutesElapsed = TimeSpan.FromMilliseconds((double)trade.TimeUtcMilliseconds - order.BuyTime.Value).TotalMinutes;
+                                    minSell = ((order.Buy - order.Goal) * minutesElapsed / 80) + order.Goal;
+                                }
+                                if (trade.Alma >= minSell && previousAlmaMA.AlmaSlopeMA > 0 && trade.AlmaSlopeMA < (previousAlmaMA.AlmaSlopeMA * .6))
+                                {
+                                    var sell = Math.Round(trade.Alma, 2);
                                     order.Sell = sell;
                                 }
                             }
-                            else if (order.BuyTime.HasValue && trade.TimeUtcMilliseconds > (order.BuyTime + TimeSpan.FromMinutes(60).TotalMilliseconds))
+                            else if ((trade.TimeUtcMilliseconds - order.BuyTime) > TimeSpan.FromMinutes(60).TotalMilliseconds)
                             {
                                 if(order.Stop.HasValue && order.Stop >= trade.Price)
                                 {
